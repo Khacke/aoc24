@@ -30,6 +30,10 @@
        01 minField2   PIC 9(8).
        01 flagDeleted PIC 9(1) VALUE 0.
        01 i           PIC 9(8).
+       01 j           PIC 9(8).
+       01 current     PIC 9(8).
+       01 RET         PIC 9(8).
+       01 simScore    PIC 9(8) VALUE 0.
        01 dynTable.
            05 dynTableEntry OCCURS 1000 TIMES
                INDEXED BY tableIndex.
@@ -71,13 +75,13 @@
            PERFORM READ-TO-TABLE UNTIL fileStatus = '10'
            CLOSE inputFile
 
-           DISPLAY "Table content"
-           PERFORM VARYING tableIndex FROM 1 BY 1 UNTIL tableIndex >
+           PERFORM VARYING i FROM 1 BY 1 UNTIL i >
                tableSize
-               DISPLAY "ROW " tableIndex ": " tableField1 OF
-               dynTableEntry(tableIndex)
-               DISPLAY "ROW " tableIndex ": " tableField2 OF
-               dynTableEntry(tableIndex)
+               MOVE tableField1 of dynTableEntry(i) TO current
+               PERFORM GET-SIMILARITY-SCORE
+               MULTIPLY RET BY tableField1 of dynTableEntry(i) GIVING
+               RET
+               ADD RET TO simScore
            END-PERFORM
 
            PERFORM VARYING i FROM 1 BY 1 UNTIL i > tableSize
@@ -85,6 +89,7 @@
            END-PERFORM
 
            DISPLAY "Result is: " result
+           DISPLAY "Similarity score: " simScore
 
            STOP RUN.
 
@@ -124,16 +129,11 @@
                        SUBTRACT minField1 FROM result
                    END-IF
                END-IF
-     
-               DISPLAY "MOVING FLAGDELETED TO IDX: " minIdx1
-               DISPLAY "Before " tableField1 OF dynTableEntry(minIdx1)
+               
                MOVE flagDeleted TO tableField1 OF dynTableEntry(minIdx1)
-               DISPLAY "AFTER " tableField1 OF dynTableEntry(minIdx1)
                MOVE flagDeleted TO tableField2 OF dynTableEntry(minIdx2)
      
-               DISPLAY "min in first row: " minField1 " with index of "
                minIdx1
-               DISPLAY "min of second row: " minField2 " with index of "
                minIdx2
            END-IF.
 
@@ -157,3 +157,12 @@
                    dynTableEntry(tableIndex)
                    ADD 1 TO tableIndex
            END-READ.
+
+       GET-SIMILARITY-SCORE.
+           MOVE 0 TO RET
+           PERFORM VARYING j FROM 1 BY 1 UNTIL j >
+               tableSize
+               IF tableField2 of dynTableEntry(j) = current
+                   ADD 1 TO RET
+               END-IF
+           END-PERFORM.
