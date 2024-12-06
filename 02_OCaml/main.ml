@@ -61,7 +61,13 @@ let is_decreasing lst =
     | _ :: xs -> aux (List.hd lst) xs
 
 let is_line_safe line = 
-    is_increasing line || is_decreasing line
+    let pool = List.mapi ( fun i _ -> 
+        List.filteri ( fun j _ -> j <> i ) line
+    ) line in
+    let bools = List.map( fun x ->
+        is_increasing x || is_decreasing x
+    ) pool in
+    List.exists( fun x -> x = true) bools 
 
 let handle_lines lines = 
     List.map is_line_safe lines 
