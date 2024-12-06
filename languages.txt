@@ -1,0 +1,44 @@
+Assembly
+BASIC
+C
+C++
+C#
+COBOL
+Crystal
+D
+Dart
+Delphi (Object Pascal)
+Eiffel
+Fortran
+Go
+Haskell
+Java
+JavaScript
+Kotlin
+Lua
+Nim
+Objective-C
+Pascal
+Perl
+PHP
+Python
+Ruby
+Rust
+Scala
+Smalltalk
+Swift
+TypeScript
+V
+Visual Basic
+Clojure
+Common Lisp
+Elixir
+Elm
+Erlang
+F#
+Idris
+Julia
+Scheme
+OCaml
+PureScript
+Racket
