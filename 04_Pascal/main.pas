@@ -13,12 +13,13 @@ var
     f: TextFile;
     line: string;
     r: TCharMatrix;
-    i, j: Integer;
-    l: TCharArray;
+    i: Integer;
+    rowCount, colCount: Integer;
+
 begin
     Assign(f, fileName);
     Reset(f);
-    SetLength(r, 0);
+    rowCount := 1;
 
     if IOResult <> 0 then
     begin
@@ -29,29 +30,15 @@ begin
     while not Eof(f) do
     begin
         ReadLn(f, line);
-        SetLength(l, Length(line));
-        for i := 1 to Length(line) do
-        begin
-            l[i] := line[i];
-        end;
-        SetLength(r, Length(r) + 1);
-        SetLength(r[High(r)], Length(line));
-        for j := 1 to Length(line) do
-        begin
-            r[High(r)][j] := l[j];
-        end;
+        Inc(rowCount);
+        SetLength(r, rowCount);
+        colCount := Length(line);
+        SetLength(r[rowCount-1], colCount);
+
+        for i := 1 to colCount do
+            r[rowCount-1][i] := line[i];
     end;
 
-    WriteLn('X length: ', Length(r[0]));
-    WriteLn('Y length: ', Length(r));
-    for i := 1 to Length(r) do
-    begin
-        for j := 1 to Length(r[i]) do
-        begin
-            Write(r[i][j], ' ');
-        end;
-        WriteLn();
-    end;
 
     Close(f);
     readFile := r;
@@ -64,43 +51,30 @@ var
     count: Integer;
 begin
     count := 0;
-    maxX := Length(matrix) - 1;
-    maxY := Length(matrix[0]) - 1;
+    maxX := Length(matrix);
+    maxY := Length(matrix[1]) - 1;
     for y := 1 to maxY do
     begin
         for x := 1 to maxX do
         begin
             if (matrix[y][x] = 'A') then
             begin
-                WriteLn('found A: (',x,',',y,')');
                 if (x - 1 > 0) and (x + 1 <= maxX) and (y - 1 > 0) and (y + 1 <= maxY) then
                 begin
                     if ( matrix[y-1][x-1] = 'M' ) and ( matrix[y-1][x-1] = 'M' ) 
                         and ( matrix[y+1][x-1] = 'S' ) and ( matrix[y+1][x+1] = 'S' ) then
-                    begin
-                        WriteLn('XMAS found: (',x,',',y,')'); 
                         count := count + 1;        
-                    end;
                     
                     if ( matrix[y-1][x-1] = 'M' ) and ( matrix[y+1][x-1] = 'M' ) 
-                        and ( matrix[y-1][x-1] = 'S' ) and ( matrix[y+1][x+1] = 'S' ) then
-                    begin
-                        WriteLn('XMAS found: (',x,',',y,')'); 
+                        and ( matrix[y-1][x+1] = 'S' ) and ( matrix[y+1][x+1] = 'S' ) then
                         count := count + 1;        
-                    end;
 
                     if ( matrix[y-1][x+1] = 'M' ) and ( matrix[y+1][x+1] = 'M' ) 
                         and ( matrix[y-1][x-1] = 'S' ) and ( matrix[y+1][x-1] = 'S' ) then
-                    begin
-                        WriteLn('XMAS found: (',x,',',y,')'); 
                         count := count + 1;        
-                    end;
                     if ( matrix[y+1][x-1] = 'M' ) and ( matrix[y+1][x+1] = 'M' ) 
                         and ( matrix[y-1][x-1] = 'S' ) and ( matrix[y-1][x+1] = 'S' ) then
-                    begin
-                        WriteLn('XMAS found: (',x,',',y,')'); 
                         count := count + 1;        
-                    end;
                 end;
             end;
         end;
@@ -108,58 +82,84 @@ begin
     findXMASPattern := count;
 end;
 
-
-function checkXMAS(matrix: TCharMatrix; x: Integer; y: Integer): Integer;
-var
+function checkInBounds(matrix: TCharMatrix; x, y: Integer): boolean;
+var 
     maxX, maxY: Integer;
-    directions: array[1..8] of record dx, dy: Integer; end;
-    i, nx, ny: Integer;
-    count: Integer;
 begin
-    maxY := Length(matrix) - 1;
-    maxX := Length(matrix[0]) - 1;
-    count := 0;
+    maxX := Length(matrix[y]);
+    maxY := Length(matrix)-1;
+    checkInBounds := ((x > 0) and (x <= maxX) and (y > 0) and (y <= maxY));
+end;
 
-    directions[1].dx :=  1; directions[1].dy :=  0;
-    directions[2].dx := -1; directions[2].dy :=  0;
-    directions[3].dx :=  0; directions[3].dy :=  1;
-    directions[4].dx :=  0; directions[4].dy := -1;
-    directions[5].dx :=  1; directions[5].dy :=  1;
-    directions[6].dx := -1; directions[6].dy := -1;
-    directions[7].dx :=  1; directions[7].dy := -1;
-    directions[8].dx := -1; directions[8].dy :=  1;
-
-    for i := 1 to 8 do
+function checkNext(matrix: TCharMatrix; x: Integer; y: Integer; t: Integer; o: Integer; find: Char): boolean;
+var
+    maxX: Integer;
+    maxY: Integer;
+begin
+    if (find = 'S') and (checkInBounds(matrix, x, y)) then
     begin
-        nx := x + directions[i].dx;
-        ny := y + directions[i].dy;
-
-        if (nx >= 0) and (nx <= maxX) and (ny >= 0) and (ny <= maxY) then
+        if (matrix[y][x] = find) then
         begin
-            if (matrix[ny][nx] = 'M') then
+            checkNext := true;
+            Exit;
+        end;
+    end;
+
+    maxX := Length(matrix[y]);
+    maxY := Length(matrix)-1;
+
+    if (x+t <= 0) or (x+t > maxX) or (y+o <= 0) or (y+o > maxY) then
+    begin
+        checkNext := false;
+        Exit;
+    end;
+    if (matrix[y][x] <> find) then
+    begin
+        checkNext := false;
+        Exit;
+    end;
+    case find of
+        'M': checkNext := checkNext(matrix, x+t, y+o, t, o, 'A');
+        'A': checkNext := checkNext(matrix, x+t, y+o, t, o, 'S');
+        else checkNext := false;
+    end;
+end;
+
+function checkNeighbors(matrix: TCharMatrix; x: Integer; y: Integer): Integer;
+var
+    found: Integer;
+    i, j: Integer;
+    maxLengthY, maxLengthX: Integer;
+begin
+    found := 0;
+
+    maxLengthY := Length(matrix)-1;
+    maxLengthX := Length(matrix[y]);
+
+    if (x <= 0) or (x > maxLengthX) or (y <= 0) or (y > maxLengthY) then
+    begin
+        Writeln('Out Of Bounds');
+        checkNeighbors := found;
+        Exit;
+    end;
+
+    for i := -1 to 1 do
+    begin
+        for j := -1 to 1 do 
+        begin
+            if (i = 0) and (j = 0) then continue;
+
+            if (y+i > 0) and (y+i <= maxLengthY) and (x+j > 0) and (x+j <= maxLengthX) then
             begin
-                nx := nx + directions[i].dx;
-                ny := ny + directions[i].dy;
-                if (nx >= 0) and (nx <= maxX) and (ny >= 0) and (ny <= maxY) then
+                if (checkNext(matrix, x+j, y+i, j, i, 'M')) then
                 begin
-                    if (matrix[ny][nx] = 'A') then
-                    begin
-                        nx := nx + directions[i].dx;
-                        ny := ny + directions[i].dy;
-                        if (nx >= 0) and (nx <= maxX) and (ny >= 0) and (ny <= maxY) then
-                        begin
-                            if (matrix[ny][nx] = 'S') then
-                            begin
-                                count := count + 1;
-                            end;
-                        end;
-                    end;
+                    found := found + 1;
                 end;
             end;
         end;
     end;
 
-    checkXMAS := count;
+    checkNeighbors := found; 
 end;
 
 var
@@ -172,13 +172,13 @@ begin
     content := readFile(fileName);
     
     xmas := 0;
-    for i := 0 to Length(content) - 1 do
+    for i := 1 to Length(content)-1 do
     begin
-        for j := 0 to Length(content[i]) - 1 do
+        for j := 1 to Length(content[i]) do
         begin
             if (content[i][j] = 'X') then
             begin
-                xmas := xmas + checkXMAS(content, j, i);
+                xmas := xmas + checkNeighbors(content, j, i);
             end;
         end;
     end;
